@@ -72,3 +72,43 @@ def dataset_pull(session , drive_path = None):
         drive_path = '/data/dynamic-brain-workshop/visual_behavior'
     dataset = VisualBehaviorOphysDataset(session, cache_dir = drive_path)
     return(dataset)
+
+def model_test(session, model, l0 = False, smooth = False, solver = None):
+    #this function requires a binary model and a set of training data to output the LDA analysis
+    #as an option you can use l0 events as training data, and you can choose to smooth the data
+    
+    #option for different analysis type is available
+    
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+    
+    if l0 == False:
+        training_data = dataset_pull(session)
+    if l0 == True:
+        training_data = l0_event_pull(session)
+        
+    if ((smooth == True)&(l0 == True)):
+        return('This function is not yet supported')
+    
+    if ((smooth == True)&(l0 == False)):
+        return('This function is not yet supported')
+    
+    time, trace = training_data.dff_traces
+    if len(trace[0]) != len(model):
+        return('Model does not match trace length for selected session')
+    
+    #ATTENTION
+    #This step may need revision.  I believe the array needs to be reshaped in order to work but dont know why
+    trace = np.swapaxes(trace, 0, 1)
+    
+    #This may also need revision, but its how I returned an output so I'm sticking with it
+    
+    if solver == None:
+        solve = LinearDiscriminantAnalysis('svd')
+    if solver == 'isqr':
+        solve = LinearDiscriminantAnalysis('isqr')
+    if solver == 'eigen':
+        solve = LinearDiscriminantAnalysis('eigen')
+    
+    output = solve.fit_transform(trace, model)
+    array = output[:,0]
+    return(array)
