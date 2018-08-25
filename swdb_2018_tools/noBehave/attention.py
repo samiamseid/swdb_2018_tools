@@ -63,3 +63,12 @@ def experiments_for_donor_id (donor_id):
    # returns experiment_id in an array #
    holder_value = manifest[manifest.donor_id == donor_id]['experiment_id'].values
    return holder_value
+
+def dataset_pull(session , drive_path = None):
+    #this function simplifies the loading of a dataset by assuming the drive_path
+    #input session_id and output dataset object
+    from visual_behavior.ophys.dataset.visual_behavior_ophys_dataset import VisualBehaviorOphysDataset
+    if drive_path == None:
+        drive_path = '/data/dynamic-brain-workshop/visual_behavior'
+    dataset = VisualBehaviorOphysDataset(session, cache_dir = drive_path)
+    return(dataset)
