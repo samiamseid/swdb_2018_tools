@@ -115,18 +115,25 @@ def model_test(session, model, l0 = False, smooth = False, solver = None):
 
 def experiment_snip(experiment, start_list, end_list):
     #This is a sub-function that will be called within trace_snip
-    time, trace = experiment.dff_traces()
     
-    for i, start_time in start_list:
-        start_time = start_list[i]
-        end_time = end_list[i]
-        domain_indices = np.where(np.logical_and(time >=start_time, time < end_time))
-        current_trace = trace[domain_indices]
-        current_times = time[domain_indices]
-        print(domain_indices)
-        print(current_times)
-        break
-    return('ding')
+    experiment = dataset_pull(experiment)
+    time, trace = experiment.dff_traces
+    trace_list = []
+    
+    for cell in trace:
+        time_list =[]
+        for i, start_time in enumerate(start_list):
+            start_time = start_list[i]
+            end_time = end_list[i]
+            domain_indices = np.where(np.logical_and(time >=start_time, time < end_time))
+            current_trace = cell[domain_indices]
+            current_times = time[domain_indices]
+            trace_list.extend(current_trace)
+            time_list.extend(current_times)
+        
+        #return(current_trace)
+        #break
+    return(time_list, trace_list)
 
 def trace_snip(experiment_list, start_array, end_array, l0=False, smooth = False):
     #Inputs dataframe, start times and stop times.  Outputs snips of neuron activity between the specified times
@@ -134,22 +141,82 @@ def trace_snip(experiment_list, start_array, end_array, l0=False, smooth = False
     #Start should be a list of start times
     #End should be a list of end times
     
+    trace_array = []
+    time_array = []
+    
+#     if type(experiment[0]) != visual_behavior.ophys.dataset.visual_behavior_ophys_dataset.VisualBehaviorOphysDataset:
+#         return('Not a dataset object')
     
     if start_array.shape != end_array.shape:
         return('List of start and end times do not match')
-    
-    if type(experiment_list[0]) == visual_behavior.ophys.dataset.visual_behavior_ophys_dataset.VisualBehaviorOphysDataset:
-        if l0 = False:
-            time, trace = experiment.dff_traces()
-        elif l0 = True:
-            l0 = '/data/dynamic-brain-workshop/visual_behavior_events/%s_events.npz' % exp_id
-            l0_events = np.load(l0)['ev']
-            time = experiment.timestamps_ophys
 
-        for i, start_list in enumerate(start_array):
-            end_list = end_array[i]
-            for j, start_time in enumerate(start_list):
-                start_snip = start_time
-                end_snip = end_list[j]
-                
-    elif type(experiment_list[0]) == type(1):
+#This feature will be updated in a future patch
+#     if l0 == False:
+#         experiments = dataset_pull(experiment)
+#         time, trace = experiments.dff_traces()
+#     elif l0 == True:
+#         l0 = '/data/dynamic-brain-workshop/visual_behavior_events/%s_events.npz' % exp_id
+#         l0_events = np.load(l0)['ev']
+#         experiments = dataset_pull(experiment)
+#         time = experiments.timestamps_ophys
+    
+    for i, experiment in enumerate(experiment_list):
+        experiment  = dataset_pull(experiment)
+        exp_id = experiment.experiment_id
+        start_list = start_array[i]
+        end_list = end_array[i]
+        time, trace = experiment_snip(exp_id, start_list, end_list)
+        trace_array.append(trace)
+        time_array.append(time)
+    return(trace_array, time_array)
+
+def engagement_a(experiment_list, smooth = False, l0 = False):    
+    #pass in a list of experiments and return an arrary of engagement binaries, and two arrays of start/end times
+    eng_start_array = []
+    eng_end_array = []
+    eng_binary_array = []
+    for experiment in experiment_list:
+        dataset = dataset_pull(experiment)
+        time = dataset.get_timestamps_ophys
+        trials = dataset.trials
+        eng_binary_temp = []
+        eng_st = []
+        eng_end = []
+        #create dataframe with engagement windows and simple engagement binary
+        
+        
+        for i in range(len(trials.trial)):
+            last_initial_image =(trials.change_time[i] - 0.75)
+            eng_st.append(last_initial_image)
+
+            resp_window_start = (trials.change_time[i] + 0.15)
+            eng_end.append(resp_window_start)
+            #eng_binary.append(eng_binary_temp)
+            
+            
+            
+        #for i in range(len(trials.trial)):
+            if ((trials.trial_type[i] == 'go') and (trials.response_type[i] == 'HIT')): #or ((trials.trial_type[i] == 'catch') and (trials.response_type[i] == 'CR')):
+                success = 1
+                domain_indices = np.where(np.logical_and(time >=last_initial_image, time < resp_window_start)) 
+                binary_times = np.ones(len(domain_indices)).tolist()
+                eng_binary_temp.extend(binary_times)
+            else:
+                success = 0
+                domain_indices = np.where(np.logical_and(time >=last_initial_image, time < resp_window_start)) 
+                binary_times = np.zeros(len(domain_indices)).tolist()
+                eng_binary_temp.extend(binary_times)
+        eng_binary_array.append(eng_binary_temp)
+        eng_start_array.append(eng_st)
+        eng_end_array.append(eng_end)
+    
+    eng_binary_array = np.array(eng_binary_array)
+    eng_start_array = np.array(eng_start_array)
+    eng_end_array = np.array(eng_end_array)
+    
+    
+    
+    trace_output, time_output = trace_snip(experiment_list, eng_start_array, eng_end_array, smooth, l0)
+    trace_output = np.array(trace_output)
+    time_output = np.array(time_output)
+    return(eng_binary_array, trace_output, time_output)
