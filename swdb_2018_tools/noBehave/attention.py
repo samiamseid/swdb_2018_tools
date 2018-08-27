@@ -112,3 +112,44 @@ def model_test(session, model, l0 = False, smooth = False, solver = None):
     output = solve.fit_transform(trace, model)
     array = output[:,0]
     return(array)
+
+def experiment_snip(experiment, start_list, end_list):
+    #This is a sub-function that will be called within trace_snip
+    time, trace = experiment.dff_traces()
+    
+    for i, start_time in start_list:
+        start_time = start_list[i]
+        end_time = end_list[i]
+        domain_indices = np.where(np.logical_and(time >=start_time, time < end_time))
+        current_trace = trace[domain_indices]
+        current_times = time[domain_indices]
+        print(domain_indices)
+        print(current_times)
+        break
+    return('ding')
+
+def trace_snip(experiment_list, start_array, end_array, l0=False, smooth = False):
+    #Inputs dataframe, start times and stop times.  Outputs snips of neuron activity between the specified times
+    #Experiment should be a VisualBehaviorOphysDataset object
+    #Start should be a list of start times
+    #End should be a list of end times
+    
+    
+    if start_array.shape != end_array.shape:
+        return('List of start and end times do not match')
+    
+    if type(experiment_list[0]) == visual_behavior.ophys.dataset.visual_behavior_ophys_dataset.VisualBehaviorOphysDataset:
+        if l0 = False:
+            time, trace = experiment.dff_traces()
+        elif l0 = True:
+            l0 = '/data/dynamic-brain-workshop/visual_behavior_events/%s_events.npz' % exp_id
+            l0_events = np.load(l0)['ev']
+            time = experiment.timestamps_ophys
+
+        for i, start_list in enumerate(start_array):
+            end_list = end_array[i]
+            for j, start_time in enumerate(start_list):
+                start_snip = start_time
+                end_snip = end_list[j]
+                
+    elif type(experiment_list[0]) == type(1):
