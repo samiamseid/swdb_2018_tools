@@ -163,12 +163,6 @@ def trace_snip(experiment_list, start_array, end_array, l0=False, smooth = False
     if start_array.shape != end_array.shape:
         return('List of start and end times do not match')
 
-#This feature will be updated in a future patch
-    if l0 == True:
-        l0 = '/data/dynamic-brain-workshop/visual_behavior_events/%s_events.npz' % exp_id
-        l0_events = np.load(l0)['ev']
-        experiments = dataset_pull(experiment)
-        time = experiments.timestamps_ophys
     if ((l0 == True)&(smooth ==True)):
         return('I dont want to smooth an L0!')
 
@@ -178,6 +172,10 @@ def trace_snip(experiment_list, start_array, end_array, l0=False, smooth = False
         exp_id = experiment.experiment_id
         start_list = start_array[i]
         end_list = end_array[i]
+        if l0 == True:
+            l0 = '/data/dynamic-brain-workshop/visual_behavior_events/%s_events.npz' % exp_id
+            trace = np.load(l0)['ev']
+            time = experiment.timestamps_ophys
         if smooth == True:
             time, trace = dataset.dff_traces
             trace = trace[0]
