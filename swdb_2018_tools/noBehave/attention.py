@@ -2,19 +2,13 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-%matplotlib inline
 import seaborn as sns
-sns.set_context('notebook', font_scale=1.5, rc={'lines.markeredgewidth': 2})
-sns.set_style('white')
-sns.set_palette('deep');
 from __future__ import print_function
 drive_path = '/data/dynamic-brain-workshop/visual_behavior'
 from visual_behavior.ophys.dataset.visual_behavior_ophys_dataset import VisualBehaviorOphysDataset
 import visual_behavior.ophys.plotting.summary_figures as sf
 from visual_behavior.ophys.response_analysis.response_analysis import ResponseAnalysis 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from swdb_2018_tools.noBehave.attention import dataset_pull
-from swdb_2018_tools.ophys import mavg_smooth
 
 def l0_event_pull(session):
     #input a session id, and output the array L0 events for each cell
@@ -170,23 +164,27 @@ def trace_snip(experiment_list, start_array, end_array, l0=False, smooth = False
         return('List of start and end times do not match')
 
 #This feature will be updated in a future patch
-#     if l0 == False:
-#         experiments = dataset_pull(experiment)
-#         time, trace = experiments.dff_traces()
-#     elif l0 == True:
-#         l0 = '/data/dynamic-brain-workshop/visual_behavior_events/%s_events.npz' % exp_id
-#         l0_events = np.load(l0)['ev']
-#         experiments = dataset_pull(experiment)
-#         time = experiments.timestamps_ophys
-    
+    if l0 == True:
+        l0 = '/data/dynamic-brain-workshop/visual_behavior_events/%s_events.npz' % exp_id
+        l0_events = np.load(l0)['ev']
+        experiments = dataset_pull(experiment)
+        time = experiments.timestamps_ophys
+    if ((l0 == True)&(smooth ==True)):
+        return('I dont want to smooth an L0!')
+
+
     for i, experiment in enumerate(experiment_list):
         experiment  = dataset_pull(experiment)
         exp_id = experiment.experiment_id
         start_list = start_array[i]
         end_list = end_array[i]
-        time, trace = experiment_snip(exp_id, start_list, end_list)
-        trace_array.append(trace)
-        time, trace = experiment.dff_traces
+        if smooth == True:
+            time, trace = dataset.dff_traces
+            trace = trace[0]
+            box = np.ones(10)/10
+            trace = np.convolve(just_one, box, 'same')
+        else:
+            time, trace = experiment.dff_traces
 
         for cell in trace:
             time_list =[]
