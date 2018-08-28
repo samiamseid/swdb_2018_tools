@@ -1,3 +1,21 @@
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+import seaborn as sns
+sns.set_context('notebook', font_scale=1.5, rc={'lines.markeredgewidth': 2})
+sns.set_style('white')
+sns.set_palette('deep');
+from __future__ import print_function
+drive_path = '/data/dynamic-brain-workshop/visual_behavior'
+from visual_behavior.ophys.dataset.visual_behavior_ophys_dataset import VisualBehaviorOphysDataset
+import visual_behavior.ophys.plotting.summary_figures as sf
+from visual_behavior.ophys.response_analysis.response_analysis import ResponseAnalysis 
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from swdb_2018_tools.noBehave.attention import dataset_pull
+from swdb_2018_tools.ophys import mavg_smooth
+
 def l0_event_pull(session):
     #input a session id, and output the array L0 events for each cell
     l0 = '/data/dynamic-brain-workshop/visual_behavior_events/%s_events.npz' % session
@@ -113,12 +131,14 @@ def model_test(session, model, l0 = False, smooth = False, solver = None):
     array = output[:,0]
     return(array)
 
+''' This function is no longer being supported
 def experiment_snip(experiment, start_list, end_list):
     #This is a sub-function that will be called within trace_snip
-    
+    #This function inputs one experiment, a start/end list and 
+    #outputs an array of each cells trace in the experiment
     experiment = dataset_pull(experiment)
     time, trace = experiment.dff_traces
-    trace_list = []
+    trace_array = []
     
     for cell in trace:
         time_list =[]
@@ -130,10 +150,9 @@ def experiment_snip(experiment, start_list, end_list):
             current_times = time[domain_indices]
             trace_list.extend(current_trace)
             time_list.extend(current_times)
-        
-        #return(current_trace)
-        #break
-    return(time_list, trace_list)
+        trace_array.append(trace_list)
+    return(time_list, trace_array)
+'''
 
 def trace_snip(experiment_list, start_array, end_array, l0=False, smooth = False):
     #Inputs dataframe, start times and stop times.  Outputs snips of neuron activity between the specified times
@@ -167,11 +186,28 @@ def trace_snip(experiment_list, start_array, end_array, l0=False, smooth = False
         end_list = end_array[i]
         time, trace = experiment_snip(exp_id, start_list, end_list)
         trace_array.append(trace)
-        time_array.append(time)
+        time, trace = experiment.dff_traces
+
+        for cell in trace:
+            time_list =[]
+            trace_list = []
+            for j, start_time in enumerate(start_list):
+                start_time = start_list[j]
+                end_time = end_list[j]
+                domain_indices = np.where(np.logical_and(time >=start_time, time < end_time))
+                current_trace = cell[domain_indices]
+                current_times = time[domain_indices]
+                trace_list.extend(current_trace)
+                time_list.extend(current_times)
+            trace_array.append(trace_list)
+        time_array.append(time_list)
     return(trace_array, time_array)
 
 def engagement_a(experiment_list, smooth = False, l0 = False):    
     #pass in a list of experiments and return an arrary of engagement binaries, and two arrays of start/end times
+    
+    #IN DEVELOPMENT
+    #Optional argument for creating wide binary and wider binary
     eng_start_array = []
     eng_end_array = []
     eng_binary_array = []
@@ -186,16 +222,19 @@ def engagement_a(experiment_list, smooth = False, l0 = False):
         
         
         for i in range(len(trials.trial)):
-            last_initial_image =(trials.change_time[i] - 0.75)
-            eng_st.append(last_initial_image)
+            if trials.trial_type[i] == 'go':
+                last_initial_image =(trials.change_time[i] - 0.75)
+                eng_st.append(last_initial_image)
 
-            resp_window_start = (trials.change_time[i] + 0.15)
-            eng_end.append(resp_window_start)
-            #eng_binary.append(eng_binary_temp)
+                resp_window_start = (trials.change_time[i] + 0.15)
+                eng_end.append(resp_window_start)
+            else:
+                continue
             
             
             
-        #for i in range(len(trials.trial)):
+            
+        
             if ((trials.trial_type[i] == 'go') and (trials.response_type[i] == 'HIT')): #or ((trials.trial_type[i] == 'catch') and (trials.response_type[i] == 'CR')):
                 success = 1
                 domain_indices = np.where(np.logical_and(time >=last_initial_image, time < resp_window_start)) 
@@ -206,10 +245,11 @@ def engagement_a(experiment_list, smooth = False, l0 = False):
                 domain_indices = np.where(np.logical_and(time >=last_initial_image, time < resp_window_start)) 
                 binary_times = np.zeros(len(domain_indices)).tolist()
                 eng_binary_temp.extend(binary_times)
-        eng_binary_array.append(eng_binary_temp)
-        eng_start_array.append(eng_st)
         eng_end_array.append(eng_end)
-    
+        eng_start_array.append(eng_st)
+        for cells in range(len(dataset.cell_specimen_ids)):
+            eng_binary_array.append(eng_binary_temp)
+        
     eng_binary_array = np.array(eng_binary_array)
     eng_start_array = np.array(eng_start_array)
     eng_end_array = np.array(eng_end_array)
