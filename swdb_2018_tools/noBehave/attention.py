@@ -162,7 +162,13 @@ def trace_snip(experiment, start_list, end_list, smooth = False, l0 = False):
 
     if ((l0 == True)&(smooth ==True)):
         return('I dont want to smooth an L0!')
-    
+
+
+#     for i, experiment in enumerate(experiment_list):
+#         experiment  = dataset_pull(experiment)
+#         exp_id = experiment.experiment_id
+#         start_list = start_array[i]
+#         end_list = end_array[i]
     if l0 == True:
         l0 = '/data/dynamic-brain-workshop/visual_behavior_events/%s_events.npz' % exp_id
         trace = np.load(l0)['ev']
@@ -195,6 +201,7 @@ def engagement_a(experiment_list, smooth = False, l0 = False, preview = False):
     
     eng_binary_array = []
     eng_trace_array = []
+    eng_time_array = []
     for experiment in experiment_list:
         eng_start_array = []
         eng_end_array = []
@@ -203,15 +210,15 @@ def engagement_a(experiment_list, smooth = False, l0 = False, preview = False):
         #create dataframe with engagement windows and simple engagement binary   
         eng_st, eng_end = eng_window(trials, preview = preview)
         eng_binary_temp = singletrial_eng_binary(trials, preview = preview)
-        trace_output, time_output = trace_snip(dataset, eng_st, eng_end, smooth, l0)
-        eng_trace_array.extend(trace_output)
+        trace_output, time_output_temp = trace_snip(dataset, eng_st, eng_end, smooth, l0)
+        eng_trace_array.append(trace_output)
+        eng_time_array.append(time_output_temp)
         for cells in range(len(dataset.cell_specimen_ids)):
-            eng_binary_array.extend(eng_binary_temp)       
-        
+            eng_binary_array.extend(eng_binary_temp)
+               
     eng_binary_array = np.array(eng_binary_array)
-    eng_start_array = np.array(eng_start_array)
-    eng_end_array = np.array(eng_end_array)
-
-    trace_output = np.array(trace_output)
-    time_output = np.array(time_output)
+        
+#     trace_output, time_output = trace_snip(experiment_list, eng_start_array, eng_end_array, smooth, l0)
+    trace_output = np.array(eng_trace_array)
+    time_output = np.array(eng_time_array)
     return(eng_binary_array, trace_output, time_output)
