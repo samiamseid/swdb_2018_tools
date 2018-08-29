@@ -1,20 +1,20 @@
-def eng_window(trials, catch=False, preview = False):
+def eng_window(trials, catch=False, preview = False, change_1 = 0.75, change_2 = 0.15):
     eng_st = []
     eng_end = []
 
     for i in range(len(trials.trial)):
         if catch == False:
             if trials.trial_type[i] == 'go':
-                last_initial_image =(trials.change_time[i] - 0.75)
+                last_initial_image =(trials.change_time[i] - change_1)
                 eng_st.append(last_initial_image)
-                resp_window_start = (trials.change_time[i] + 0.15)
+                resp_window_start = (trials.change_time[i] + change_2)
                 eng_end.append(resp_window_start) 
             else:
                 continue
         if catch== True:
-            last_initial_image =(trials.change_time[i] - 0.75)
+            last_initial_image =(trials.change_time[i] - change_1)
             eng_st.append(last_initial_image)
-            resp_window_start = (trials.change_time[i] + 0.15)
+            resp_window_start = (trials.change_time[i] + change_2)
             eng_end.append(resp_window_start) 
     
     if preview == True:
