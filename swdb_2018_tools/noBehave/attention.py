@@ -249,11 +249,38 @@ def engagement_a(experiment_list,
                  process = False,
                  per_cell = False, 
                  model = False, 
+                 wide_model = False, 
+                 trials_before_and_after = 1, 
+                 num_successes = 2,
                  time = False, 
                  meta = False, 
                  one_exp = False, 
                  one_cell = False):    
+    
+    #Experiment List: Requires experiment ids to be analyzed.  Must be a list
+    #Smooth: If True, the program will return a smoothed trace instead of the raw dF/F
+    #l0 : If True, the program will return the l0 Events instead of trace
+    #preview: Used for printing a preview of the time window snips
+    #change_1/change_2: Used to determine the window around the image change. change_1 is time in seconds before, change_2 is after
+    #catch:  By default the program will return only Hits and Misses from 'go' trials.  If True, catch trials will be included
+    #pre_change: If True, the program will pull both the change window, and the window of the last two image presentations
+    #all_pre_change: If True, the program will only pull pre_change windows for the whole trial, except for the first 3 presentations
+    #process: If True, the output of the trace/events will be the mean in that window rather than the full snip
+    #per_cell: If True, returns the trace_array in a format that compares cells over trials.  Best used for one experiment
+    #model: If True, will return the basic short window binary array corresponding to datapoints
+    #wide_model: If True, will return the rolling "graded" binary window 
+    #trials_before_and_after/num_success: If wide_model = True, these values are used to determine the grading for the engagement window. By default is 2/3
+    #time: If True, will return the timepoints related to the snips
+    #meta: If True, will return metadata such as presentation image type
+    #one_exp: Use to reduce function run time and pull only information from the first experiment in the list
+    #one_cell: same as one_exp, but only runs one cell
+    
+    
+    
+    
     #pass in a list of experiments and return an arrary of engagement binaries, and two arrays of start/end times
+    
+    
     #IN DEVELOPMENT
     #Optional argument for creating wide binary and wider binary
     
@@ -300,7 +327,15 @@ def engagement_a(experiment_list,
                                          meta = meta)
             
         if model == True:
-            eng_binary_temp = singletrial_eng_binary(trials, preview = preview)
+            eng_binary_temp = singletrial_eng_binary(trials,
+                                                     preview = preview)
+            
+        if wide_model == True:
+            eng_binary_temp = wide_engage_binary(trials, 
+                                              preview = preview, 
+                                              trials_before_and_after = trials_before_and_after, 
+                                              num_successes = num_successes)
+            
         trace_output, time_output_temp = trace_snip(dataset,
                                                     eng_st,
                                                     eng_end,
@@ -315,15 +350,19 @@ def engagement_a(experiment_list,
                                                     process = process,
                                                     per_cell = per_cell, 
                                                     one_cell = one_cell)
+        
+        
         eng_trace_array.append(trace_output)
         eng_time_array.append(time_output_temp)
         
-        if ((per_cell == False)&(model==True)):
+        if ((per_cell == False)&((model==True)|(wide_model==True))):
             for cells in range(len(dataset.cell_specimen_ids)):
                 eng_binary_array.extend(eng_binary_temp)
+        elif ((model == True)|(wide_model==True)):
+            eng_binary_array.extend(eng_binary_temp)
         if one_exp == True:
             break
-    if model == True:           
+    if ((model == True)|(wide_model==True)):           
         eng_binary_array = np.array(eng_binary_array)
         
 #INTERPRETING OF TRACE_OUTPUT
@@ -338,7 +377,7 @@ def engagement_a(experiment_list,
     time_output = np.array(eng_time_array)
     if ((model == False)&(time==True)):
         return(trace_output, time_output)
-    if ((model == True)&(time==False)):
+    if (((model == True)|(wide_model == True))&(time==False)):
         return(trace_output, eng_binary_array)
     if ((model == False)&(time == False)&(meta == False)):
         return(trace_output)
