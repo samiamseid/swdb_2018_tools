@@ -148,7 +148,21 @@ def experiment_snip(experiment, start_list, end_list):
     return(time_list, trace_array)
 '''
 
-def trace_snip(experiment, start_list, end_list, smooth = False, l0 = False, window_limit = 45, change_1 = 0.75, change_2 = 0.15, pre_change = False, pre_start_list = None, pre_end_list = None, all_pre_change = False):
+def trace_snip(experiment,
+               start_list,
+               end_list,
+               smooth = False,
+               l0 = False,
+               window_limit = 45,
+               change_1 = 0.75,
+               change_2 = 0.15,
+               pre_change = False,
+               pre_start_list = None,
+               pre_end_list = None,
+               all_pre_change = False,
+               process = False, 
+               per_cell = False, 
+               one_cell = False):
     #Inputs dataframe, start times and stop times.  Outputs snips of neuron activity between the specified times
     #Experiment should be a VisualBehaviorOphysDataset object
     #Start should be a list of start times
@@ -196,9 +210,17 @@ def trace_snip(experiment, start_list, end_list, smooth = False, l0 = False, win
                 domain_indices = np.where(np.logical_and(time >=start_time, time < end_time))
                 current_trace = cell[domain_indices]
                 current_times = time[domain_indices]
-                trace_list_temp.append(current_trace[:frames])
+                if process == True:
+                    current_trace=current_trace.mean()
+                    trace_list_temp.append(current_trace)
+                else:
+                    trace_list_temp.append(current_trace[:frames])
                 time_list.append(current_times)
-            trace_list.extend(trace_list_temp)
+                
+            if per_cell == True:
+                trace_list.append(trace_list_temp)
+            else:
+                trace_list.extend(trace_list_temp)
             
         if all_pre_change == True:
             for j, pre_start_time in enumerate(pre_start_list):
@@ -210,10 +232,27 @@ def trace_snip(experiment, start_list, end_list, smooth = False, l0 = False, win
                 trace_list_temp.append(current_trace[:frames])
                 time_list.append(current_times)
             trace_list.extend(trace_list_temp)
+        if one_cell == True:
+            break
         
     return(trace_list, time_list)
 
-def engagement_a(experiment_list, smooth = False, l0 = False, preview = False, change_1 = 0.75, change_2 = 0.15, catch = False, pre_change =False, all_pre_change = False):    
+def engagement_a(experiment_list,
+                 smooth = False,
+                 l0 = False,
+                 preview = False,
+                 change_1 = 0.75,
+                 change_2 = 0.15,
+                 catch = False,
+                 pre_change =False,
+                 all_pre_change = False, 
+                 process = False,
+                 per_cell = False, 
+                 model = False, 
+                 time = False, 
+                 meta = False, 
+                 one_exp = False, 
+                 one_cell = False):    
     #pass in a list of experiments and return an arrary of engagement binaries, and two arrays of start/end times
     #IN DEVELOPMENT
     #Optional argument for creating wide binary and wider binary
@@ -229,19 +268,63 @@ def engagement_a(experiment_list, smooth = False, l0 = False, preview = False, c
         trials = dataset.trials
         #create dataframe with engagement windows and simple engagement binary
         if pre_change == True:
-            eng_st, eng_end, pre_eng_st, pre_eng_end = eng_window(trials, preview = preview, change_1 = change_1, change_2=change_2, catch= catch, pre_change= pre_change, all_pre_change = all_pre_change)
+            eng_st, eng_end, pre_eng_st, pre_eng_end = eng_window(trials,
+                                                                  preview = preview,
+                                                                  change_1 = change_1,
+                                                                  change_2=change_2,
+                                                                  catch= catch,
+                                                                  pre_change= pre_change,
+                                                                  all_pre_change = all_pre_change, 
+                                                                  meta = meta)
+        if meta == True:
+            pre_eng_st = None
+            pre_eng_end = None
+            eng_st, eng_end, change_image_list = eng_window(trials,
+                                         preview = preview,
+                                         change_1 = change_1,
+                                         change_2=change_2,
+                                         catch= catch,
+                                         pre_change= pre_change, 
+                                         meta = meta)
+            
+            
         else:
             pre_eng_st = None
             pre_eng_end = None
-            eng_st, eng_end = eng_window(trials, preview = preview, change_1 = change_1, change_2=change_2, catch= catch, pre_change= pre_change)
-        eng_binary_temp = singletrial_eng_binary(trials, preview = preview)
-        trace_output, time_output_temp = trace_snip(dataset, eng_st, eng_end, smooth=smooth, l0=l0, change_1=change_1, change_2=change_2, pre_change = pre_change, pre_start_list = pre_eng_st, pre_end_list = pre_eng_end, all_pre_change = all_pre_change)
+            eng_st, eng_end = eng_window(trials,
+                                         preview = preview,
+                                         change_1 = change_1,
+                                         change_2=change_2,
+                                         catch= catch,
+                                         pre_change= pre_change, 
+                                         meta = meta)
+            
+        if model == True:
+            eng_binary_temp = singletrial_eng_binary(trials, preview = preview)
+        trace_output, time_output_temp = trace_snip(dataset,
+                                                    eng_st,
+                                                    eng_end,
+                                                    smooth=smooth,
+                                                    l0=l0,
+                                                    change_1=change_1,
+                                                    change_2=change_2,
+                                                    pre_change = pre_change,
+                                                    pre_start_list = pre_eng_st,
+                                                    pre_end_list = pre_eng_end,
+                                                    all_pre_change = all_pre_change, 
+                                                    process = process,
+                                                    per_cell = per_cell, 
+                                                    one_cell = one_cell)
         eng_trace_array.append(trace_output)
         eng_time_array.append(time_output_temp)
-        for cells in range(len(dataset.cell_specimen_ids)):
-            eng_binary_array.extend(eng_binary_temp)
-               
-    eng_binary_array = np.array(eng_binary_array)
+        
+        if ((per_cell == False)&(model==True)):
+            for cells in range(len(dataset.cell_specimen_ids)):
+                eng_binary_array.extend(eng_binary_temp)
+        if one_exp == True:
+            break
+    if model == True:           
+        eng_binary_array = np.array(eng_binary_array)
         
 #INTERPRETING OF TRACE_OUTPUT
 #The first level of the array is the index of the experiment in the list of experiments
@@ -253,4 +336,12 @@ def engagement_a(experiment_list, smooth = False, l0 = False, preview = False, c
 
     trace_output = np.array(eng_trace_array)
     time_output = np.array(eng_time_array)
+    if ((model == False)&(time==True)):
+        return(trace_output, time_output)
+    if ((model == True)&(time==False)):
+        return(trace_output, eng_binary_array)
+    if ((model == False)&(time == False)&(meta == False)):
+        return(trace_output)
+    if meta == True:
+        return(trace_output, change_image_list)
     return(eng_binary_array, trace_output, time_output)

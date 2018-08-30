@@ -1,7 +1,14 @@
-def eng_window(trials, catch=False, preview = False, change_1 = 0.75, change_2 = 0.15, pre_change = False, all_pre_change = False):
+def eng_window(trials,
+               catch=False,
+               preview = False,
+               change_1 = 0.75,
+               change_2 = 0.15,
+               pre_change = False,
+               all_pre_change = False, 
+               meta = False):
     eng_st = []
     eng_end = []
-    
+    change_image_list = []
     if pre_change == True:
         pre_eng_st = []
         pre_eng_end = []
@@ -31,6 +38,9 @@ def eng_window(trials, catch=False, preview = False, change_1 = 0.75, change_2 =
                             pre_eng_end.append(pre_resp_window_start)
                             repeats -=1
                             way_back += 1
+                if meta == True:
+                    change_image = trials.change_image_name[i]
+                    change_image_list.append(change_image)
         if catch== True:
             last_initial_image =(trials.change_time[i] - change_1)
             eng_st.append(last_initial_image)
@@ -42,6 +52,8 @@ def eng_window(trials, catch=False, preview = False, change_1 = 0.75, change_2 =
         print("preview: ", eng_st[:3], eng_end[:3], "length is: ", len(eng_st))
     if pre_change == True:
         return(eng_st, eng_end, pre_eng_st, pre_eng_end)
+    if image == True:
+        return(eng_st, eng_end, change_image_list)
     else:
         return(eng_st, eng_end)
 
