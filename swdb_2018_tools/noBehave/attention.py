@@ -148,7 +148,7 @@ def experiment_snip(experiment, start_list, end_list):
     return(time_list, trace_array)
 '''
 
-def trace_snip(experiment, start_list, end_list, smooth = False, l0 = False, window_limit = 45, change_1 = 0.75, change_2 = 0.15):
+def trace_snip(experiment, start_list, end_list, smooth = False, l0 = False, window_limit = 45, change_1 = 0.75, change_2 = 0.15, pre_change = False, pre_start_list = None, pre_end_list = None, all_pre_change = False):
     #Inputs dataframe, start times and stop times.  Outputs snips of neuron activity between the specified times
     #Experiment should be a VisualBehaviorOphysDataset object
     #Start should be a list of start times
@@ -156,6 +156,8 @@ def trace_snip(experiment, start_list, end_list, smooth = False, l0 = False, win
     frames = int((change_1 +change_2) * 30)
     trace_list = []
     time_list = []
+    
+    
     
     if len(start_list) != len(end_list):
         return('List of start and end times do not match')
@@ -177,22 +179,46 @@ def trace_snip(experiment, start_list, end_list, smooth = False, l0 = False, win
         if smooth == True:
             box = np.ones(10)/10
             cell = np.convolve(cell, box, 'same')
-        for j, start_time in enumerate(start_list):
-            start_time = start_list[j]
-            end_time = end_list[j]
-            domain_indices = np.where(np.logical_and(time >=start_time, time < end_time))
-            current_trace = cell[domain_indices]
-            current_times = time[domain_indices]
-            trace_list_temp.append(current_trace[:frames])
-            time_list.append(current_times)
-        trace_list.extend(trace_list_temp)
+            
+        if all_pre_change == False:    
+            for j, start_time in enumerate(start_list):
+                if pre_change == True:
+                    pre_start_time = pre_start_list[j]
+                    pre_end_time = pre_end_list[j]
+                    domain_indices = np.where(np.logical_and(time >=pre_start_time, time < pre_end_time))
+                    current_trace = cell[domain_indices]
+                    current_times = time[domain_indices]
+                    trace_list_temp.append(current_trace[:frames])
+                    time_list.append(current_times)
+
+                start_time = start_list[j]
+                end_time = end_list[j]
+                domain_indices = np.where(np.logical_and(time >=start_time, time < end_time))
+                current_trace = cell[domain_indices]
+                current_times = time[domain_indices]
+                trace_list_temp.append(current_trace[:frames])
+                time_list.append(current_times)
+            trace_list.extend(trace_list_temp)
+            
+        if all_pre_change == True:
+            for j, pre_start_time in enumerate(pre_start_list):
+                pre_start_time = pre_start_list[j]
+                pre_end_time = pre_end_list[j]
+                domain_indices = np.where(np.logical_and(time >=pre_start_time, time < pre_end_time))
+                current_trace = cell[domain_indices]
+                current_times = time[domain_indices]
+                trace_list_temp.append(current_trace[:frames])
+                time_list.append(current_times)
+            trace_list.extend(trace_list_temp)
+        
     return(trace_list, time_list)
 
-def engagement_a(experiment_list, smooth = False, l0 = False, preview = False, change_1 = 0.75, change_2 = 0.15, catch = False):    
+def engagement_a(experiment_list, smooth = False, l0 = False, preview = False, change_1 = 0.75, change_2 = 0.15, catch = False, pre_change =False, all_pre_change = False):    
     #pass in a list of experiments and return an arrary of engagement binaries, and two arrays of start/end times
     #IN DEVELOPMENT
     #Optional argument for creating wide binary and wider binary
     
+
     eng_binary_array = []
     eng_trace_array = []
     eng_time_array = []
@@ -201,10 +227,15 @@ def engagement_a(experiment_list, smooth = False, l0 = False, preview = False, c
         eng_end_array = []
         dataset = dataset_pull(experiment)
         trials = dataset.trials
-        #create dataframe with engagement windows and simple engagement binary   
-        eng_st, eng_end = eng_window(trials, preview = preview, change_1 = change_1, change_2=change_2, catch= catch)
+        #create dataframe with engagement windows and simple engagement binary
+        if pre_change == True:
+            eng_st, eng_end, pre_eng_st, pre_eng_end = eng_window(trials, preview = preview, change_1 = change_1, change_2=change_2, catch= catch, pre_change= pre_change, all_pre_change = all_pre_change)
+        else:
+            pre_eng_st = None
+            pre_eng_end = None
+            eng_st, eng_end = eng_window(trials, preview = preview, change_1 = change_1, change_2=change_2, catch= catch, pre_change= pre_change)
         eng_binary_temp = singletrial_eng_binary(trials, preview = preview)
-        trace_output, time_output_temp = trace_snip(dataset, eng_st, eng_end, smooth=smooth, l0=l0, change_1=change_1, change_2=change_2)
+        trace_output, time_output_temp = trace_snip(dataset, eng_st, eng_end, smooth=smooth, l0=l0, change_1=change_1, change_2=change_2, pre_change = pre_change, pre_start_list = pre_eng_st, pre_end_list = pre_eng_end, all_pre_change = all_pre_change)
         eng_trace_array.append(trace_output)
         eng_time_array.append(time_output_temp)
         for cells in range(len(dataset.cell_specimen_ids)):
@@ -214,9 +245,11 @@ def engagement_a(experiment_list, smooth = False, l0 = False, preview = False, c
         
 #INTERPRETING OF TRACE_OUTPUT
 #The first level of the array is the index of the experiment in the list of experiments
-#The second level of the array is the cell index from that experiment
-#The third level of the array is the trial number
-#The fourth level is the actual trace
+#The second level of the array is the cell index from that experiment, and every trial
+#The third level of the array is the trace
+
+#IF PRE_CHANGE is TRUE
+#The order of the trace list will be: evens are pre change, odds are post change
 
     trace_output = np.array(eng_trace_array)
     time_output = np.array(eng_time_array)
