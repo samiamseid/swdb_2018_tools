@@ -1,9 +1,10 @@
+from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from __future__ import print_function
+
 drive_path = '/data/dynamic-brain-workshop/visual_behavior'
 from visual_behavior.ophys.dataset.visual_behavior_ophys_dataset import VisualBehaviorOphysDataset
 import visual_behavior.ophys.plotting.summary_figures as sf

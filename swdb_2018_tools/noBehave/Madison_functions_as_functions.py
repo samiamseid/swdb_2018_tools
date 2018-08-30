@@ -1,3 +1,4 @@
+from __future__ import print_function
 def eng_window(trials,
                catch=False,
                preview = False,
