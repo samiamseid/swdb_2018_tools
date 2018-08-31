@@ -163,7 +163,8 @@ def trace_snip(experiment,
                all_pre_change = False,
                process = False, 
                per_cell = False, 
-               one_cell = False):
+               one_cell = False, 
+               pre_process=False):
     #Inputs dataframe, start times and stop times.  Outputs snips of neuron activity between the specified times
     #Experiment should be a VisualBehaviorOphysDataset object
     #Start should be a list of start times
@@ -219,7 +220,11 @@ def trace_snip(experiment,
                 time_list.append(current_times)
                 
             if per_cell == True:
-                trace_list.append(trace_list_temp)
+                if pre_process == True:
+                    trace_mean = np.mean(trace_list_temp)
+                    trace_list.append(trace_mean)
+                else:
+                    trace_list.append(trace_list_temp)
             else:
                 trace_list.extend(trace_list_temp)
             
@@ -230,9 +235,9 @@ def trace_snip(experiment,
                 domain_indices = np.where(np.logical_and(time >=pre_start_time, time < pre_end_time))
                 current_trace = cell[domain_indices]
                 current_times = time[domain_indices]
-                trace_list_temp.append(current_trace[:frames])
+                trace_list_temp.extend(current_trace[:frames])
                 time_list.append(current_times)
-            trace_list.extend(trace_list_temp)
+            trace_list.append(trace_list_temp)
         if one_cell == True:
             break
         
@@ -256,7 +261,8 @@ def engagement_a(experiment_list,
                  time = False, 
                  meta = False, 
                  one_exp = False, 
-                 one_cell = False):    
+                 one_cell = False, 
+                 pre_process = False):    
     
     #Experiment List: Requires experiment ids to be analyzed.  Must be a list
     #Smooth: If True, the program will return a smoothed trace instead of the raw dF/F
@@ -304,7 +310,7 @@ def engagement_a(experiment_list,
                                                                   pre_change= pre_change,
                                                                   all_pre_change = all_pre_change, 
                                                                   meta = meta)
-        if meta == True:
+        elif meta == True:
             pre_eng_st = None
             pre_eng_end = None
             eng_st, eng_end, change_image_list = eng_window(trials,
@@ -325,7 +331,9 @@ def engagement_a(experiment_list,
                                          change_2=change_2,
                                          catch= catch,
                                          pre_change= pre_change, 
-                                         meta = meta)
+                                         meta = meta, 
+                                         wide_model = wide_model, 
+                                         model = model)
             
         if model == True:
             eng_binary_temp = singletrial_eng_binary(trials,
@@ -333,9 +341,10 @@ def engagement_a(experiment_list,
             
         if wide_model == True:
             eng_binary_temp = wide_engage_binary(trials, 
-                                              preview = preview, 
-                                              trials_before_and_after = trials_before_and_after, 
-                                              num_successes = num_successes)
+                                                preview = preview, 
+                                                trials_before_and_after = trials_before_and_after, 
+                                                num_successes = num_successes, 
+                                                catch = catch)
             
         trace_output, time_output_temp = trace_snip(dataset,
                                                     eng_st,
@@ -350,7 +359,8 @@ def engagement_a(experiment_list,
                                                     all_pre_change = all_pre_change, 
                                                     process = process,
                                                     per_cell = per_cell, 
-                                                    one_cell = one_cell)
+                                                    one_cell = one_cell, 
+                                                    pre_process = pre_process)
         
         
         eng_trace_array.append(trace_output)
